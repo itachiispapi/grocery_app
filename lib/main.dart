@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 import 'screens/add_item_screen.dart';
 import 'screens/categories_screen.dart';
+import 'screens/weekly_planner_screen.dart'; // 👈 import this
 
 void main() {
   runApp(const GroceryApp());
@@ -23,6 +24,7 @@ class GroceryApp extends StatelessWidget {
         '/': (context) => const HomeScreen(),
         '/add': (context) => const AddItemScreen(),
         '/categories': (context) => const CategoriesScreen(),
+        '/weekly': (context) => const WeeklyPlannerScreen(), // ✅ added this
       },
     );
   }

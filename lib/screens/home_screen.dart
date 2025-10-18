@@ -43,7 +43,7 @@ class _HomeBody extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title row (battery removed)
+                  // Title row
                   Row(
                     children: [
                       Container(
@@ -92,7 +92,7 @@ class _HomeBody extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
 
-                  // Search
+                  // Search field
                   const _SearchField(),
                 ],
               ),
@@ -119,13 +119,7 @@ class _HomeBody extends StatelessWidget {
                       label: 'Weekly Plan',
                       icon: Icons.calendar_today_rounded,
                       background: const Color(0xFF9E65FF),
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Weekly Plan – coming soon'),
-                          ),
-                        );
-                      },
+                      onTap: () => Navigator.pushNamed(context, '/weekly'), // ✅ now opens your Weekly Planner
                     ),
                   ),
                 ],
@@ -135,9 +129,9 @@ class _HomeBody extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Price Estimation card
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: const _PriceEstimationCard(),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: _PriceEstimationCard(),
             ),
 
             const SizedBox(height: 24),
@@ -156,6 +150,10 @@ class _HomeBody extends StatelessWidget {
     );
   }
 }
+
+// ──────────────────────────────
+// Reusable widgets below
+// ──────────────────────────────
 
 class _StatPill extends StatelessWidget {
   final String label;
@@ -442,9 +440,8 @@ class _BottomNav extends StatelessWidget {
       onDestinationSelected: (i) {
         if (i == 0) return;
         if (i == 1) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Weekly Planner – coming soon')),
-          );
+          Navigator.pushNamed(context, '/weekly'); // ✅ now opens Weekly Planner
+          return;
         }
         if (i == 2) Navigator.pushNamed(context, '/categories');
       },

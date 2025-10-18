@@ -20,9 +20,9 @@ class GroceryApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/': (context) => HomeScreen(),
+        '/': (context) => const HomeScreen(),
         '/add': (context) => const AddItemScreen(),
-        '/categories': (context) => CategoriesScreen(),
+        '/categories': (context) => const CategoriesScreen(),
       },
     );
   }

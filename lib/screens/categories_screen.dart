@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'category_items_screen.dart';
+
 
 class CategoriesScreen extends StatelessWidget {
   const CategoriesScreen({super.key});
@@ -134,8 +136,9 @@ class _CategoryCard extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(18),
       onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Open "$label"')),
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => CategoryItemsScreen(category: label)),
         );
       },
       child: Container(

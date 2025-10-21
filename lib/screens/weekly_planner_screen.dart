@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:grocery_app/widgets/weekly_list_popup.dart';
 
 class WeeklyPlannerScreen extends StatefulWidget {
   const WeeklyPlannerScreen({super.key});
@@ -211,19 +212,29 @@ class _WeeklyBody extends StatelessWidget {
                 ),
                 const Spacer(),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () async {
+                    final selected = await Navigator.push<List<String>>(
+                      context,
+                      MaterialPageRoute<List<String>>(
+                        builder: (_) => const WeeklyListPopup(),
+                      ),
+                    );
+                    if (selected != null && selected.isNotEmpty && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Selected ${selected.length} item(s)')),
+                      );
+                    }
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF34C759),
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   ),
                   child: const Text('Generate List',
                       style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                )
+                ),
               ],
             ),
           ),

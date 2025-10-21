@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../data/app_db.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -13,8 +14,27 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class _HomeBody extends StatelessWidget {
+class _HomeBody extends StatefulWidget {
   const _HomeBody();
+  @override
+  State<_HomeBody> createState() => _HomeBodyState();
+}
+
+class _HomeBodyState extends State<_HomeBody> {
+  late Future<Map<String, int>> _counters;
+  late Future<Map<String, num>> _sums;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+  }
+
+  void _refresh() {
+    _counters = AppDb.I.counters();
+    _sums = AppDb.I.sums();
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -79,17 +99,24 @@ class _HomeBody extends StatelessWidget {
                   const SizedBox(height: 18),
 
                   // Stats row
-                  Row(
-                    children: const [
-                      _StatPill(label: 'Total', value: '0'),
-                      SizedBox(width: 12),
-                      _StatPill(label: 'Active', value: '0'),
-                      SizedBox(width: 12),
-                      _StatPill(label: 'Done', value: '0'),
-                      SizedBox(width: 12),
-                      _StatPill(label: '', value: '0', icon: Icons.star),
-                    ],
+                  FutureBuilder<Map<String,int>>(
+                    future: _counters,
+                    builder: (context, snap) {
+                      final c = snap.data ?? {'total':0,'active':0,'done':0,'priority':0};
+                      return Row(
+                        children: [
+                          _StatPill(label: 'Total', value: '${c['total'] ?? 0}'),
+                          const SizedBox(width: 12),
+                          _StatPill(label: 'Active', value: '${c['active'] ?? 0}'),
+                          const SizedBox(width: 12),
+                          _StatPill(label: 'Done', value: '${c['done'] ?? 0}'),
+                          const SizedBox(width: 12),
+                          _StatPill(label: '', value: '${c['priority'] ?? 0}', icon: Icons.star),
+                        ],
+                      );
+                    },
                   ),
+
                   const SizedBox(height: 16),
 
                   // Search field
@@ -110,7 +137,10 @@ class _HomeBody extends StatelessWidget {
                       label: 'Add Item',
                       icon: Icons.add,
                       background: const Color(0xFF0AD06E),
-                      onTap: () => Navigator.pushNamed(context, '/add'),
+                      onTap: () async {
+                        final added = await Navigator.pushNamed(context, '/add');
+                        if (added == true && mounted) setState(_refresh);
+                      },
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -119,7 +149,7 @@ class _HomeBody extends StatelessWidget {
                       label: 'Weekly Plan',
                       icon: Icons.calendar_today_rounded,
                       background: const Color(0xFF9E65FF),
-                      onTap: () => Navigator.pushNamed(context, '/weekly'), // ✅ now opens your Weekly Planner
+                      onTap: () => Navigator.pushNamed(context, '/weekly'), 
                     ),
                   ),
                 ],
@@ -128,11 +158,33 @@ class _HomeBody extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // Price Estimation card
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: _PriceEstimationCard(),
+            // Price Estimation card (live data)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: FutureBuilder<List<dynamic>>(
+                future: Future.wait([_sums, _counters]), // [_sums: Map<String,num>, _counters: Map<String,int>]
+                builder: (context, snap) {
+                  if (!snap.hasData) {
+                    return const _PriceEstimationCard(
+                      total: 0.0, toBuy: 0.0, spent: 0.0,
+                      totalCount: 0, leftCount: 0, doneCount: 0,
+                    );
+                  }
+                  final sums = snap.data![0] as Map<String, num>;
+                  final cnts = snap.data![1] as Map<String, int>;
+
+                  return _PriceEstimationCard(
+                    total: (sums['total'] ?? 0).toDouble(),
+                    toBuy: (sums['toBuy'] ?? 0).toDouble(),
+                    spent: (sums['spent'] ?? 0).toDouble(),
+                    totalCount: cnts['total'] ?? 0,
+                    leftCount: cnts['active'] ?? 0,
+                    doneCount: cnts['done'] ?? 0,
+                  );
+                },
+              ),
             ),
+
 
             const SizedBox(height: 24),
 
@@ -151,10 +203,7 @@ class _HomeBody extends StatelessWidget {
   }
 }
 
-// ──────────────────────────────
-// Reusable widgets below
-// ──────────────────────────────
-
+// Reusable widgets
 class _StatPill extends StatelessWidget {
   final String label;
   final String value;
@@ -277,7 +326,22 @@ class _BigButton extends StatelessWidget {
 }
 
 class _PriceEstimationCard extends StatelessWidget {
-  const _PriceEstimationCard();
+  final double total;
+  final double toBuy;
+  final double spent;
+  final int totalCount;
+  final int leftCount;
+  final int doneCount;
+
+  const _PriceEstimationCard({
+    super.key,
+    required this.total,
+    required this.toBuy,
+    required this.spent,
+    required this.totalCount,
+    required this.leftCount,
+    required this.doneCount,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -440,7 +504,7 @@ class _BottomNav extends StatelessWidget {
       onDestinationSelected: (i) {
         if (i == 0) return;
         if (i == 1) {
-          Navigator.pushNamed(context, '/weekly'); // ✅ now opens Weekly Planner
+          Navigator.pushNamed(context, '/weekly'); 
           return;
         }
         if (i == 2) Navigator.pushNamed(context, '/categories');

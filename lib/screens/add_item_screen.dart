@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../data/app_db.dart';
+import '../data/models.dart';
 
 class AddItemScreen extends StatefulWidget {
   const AddItemScreen({super.key});
@@ -149,7 +151,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                               children: [
                                 _FieldLabel('Unit'),
                                 DropdownButtonFormField<String>(
-                                  value: _unit,
+                                  initialValue: _unit,
                                   decoration: InputDecoration(
                                     filled: true,
                                     fillColor: Colors.white,
@@ -243,18 +245,30 @@ class _AddItemScreenState extends State<AddItemScreen> {
                             ),
                             elevation: 0,
                           ),
-                          onPressed: () {
+                          onPressed: () async {
                             if (!_formKey.currentState!.validate()) return;
-                            // TODO: hook into data store
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Added "${_nameCtrl.text}" • $_selectedCat • ${_qtyCtrl.text} $_unit',
-                                ),
-                              ),
+
+                            final item = GItem(
+                              name: _nameCtrl.text.trim(),
+                              qty: double.tryParse(_qtyCtrl.text.trim())?.toDouble() ?? 1,
+                              unit: _unit,
+                              category: _selectedCat,
+                              price: double.tryParse(_priceCtrl.text.trim()) ?? 0,
+                              notes: _notesCtrl.text.trim(),
+                              done: false,
+                              active: true,
+                              priority: false, // will add UI toggle in next commit
+                              createdAt: DateTime.now(),
                             );
-                            Navigator.pop(context);
+                            await AppDb.I.insertItem(item);
+
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Added "${item.name}"')),
+                            );
+                            Navigator.pop(context, true);
                           },
+
                           child: const Text(
                             'Add to List',
                             style: TextStyle(

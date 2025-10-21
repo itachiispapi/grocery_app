@@ -87,6 +87,11 @@ class CategoriesScreen extends StatelessWidget {
                       icon: Icons.cookie_outlined,
                     ),
                     _CategoryCard(
+                      color: Color(0xFFFFF2FC),
+                      label: 'Meats',
+                      icon: Icons.outdoor_grill,
+                    ),
+                    _CategoryCard(
                       color: Color(0xFFEFF8FF),
                       label: 'Beverages',
                       icon: Icons.local_drink_outlined,

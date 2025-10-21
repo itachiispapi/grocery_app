@@ -18,7 +18,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   String _unit = 'pcs';
 
   final List<String> _cats = const [
-    'Produce','Dairy','Meat','Snacks','Beverages','Bakery','Frozen','Pantry','Other'
+    'Vegetables','Fruit','Dairy','Bakery', 'Meats','Beverages','Snacks','Household','Other'
   ];
   String _selectedCat = 'Other';
 
@@ -245,7 +245,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                           ),
                           onPressed: () {
                             if (!_formKey.currentState!.validate()) return;
-                            // TODO: hook into your data store
+                            // TODO: hook into data store
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(

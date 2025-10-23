@@ -19,6 +19,21 @@ class AppDb {
     return _db!;
   }
 
+  Future<void> setActiveForIds(List<int> ids, {bool active = true, bool done = false}) async {
+    if (ids.isEmpty) return;
+    final d = await db;
+    final batch = d.batch();
+    for (final id in ids) {
+      batch.update(
+        'items',
+        {'active': active ? 1 : 0, 'done': done ? 1 : 0},
+        where: 'id=?',
+        whereArgs: [id],
+      );
+    }
+    await batch.commit(noResult: true);
+  }
+
   Future<void> _onCreate(Database d, int v) async {
     await d.execute('''
       CREATE TABLE items(
@@ -87,7 +102,7 @@ class AppDb {
   Future<Map<String, num>> sums() async {
   final d = await db;
 
-  Future<num> _sum(String where) async {
+  Future<num> sum(String where) async {
     final rows = await d.rawQuery('SELECT COALESCE(SUM(price*qty), 0.0) AS s FROM items $where');
     final v = rows.first['s'];
     if (v is int) return v;
@@ -95,9 +110,9 @@ class AppDb {
     return 0;
   }
 
-  final total = await _sum('');
-  final toBuy = await _sum('WHERE done=0 AND active=1');
-  final spent = await _sum('WHERE done=1');
+  final total = await sum('');
+  final toBuy = await sum('WHERE done=0 AND active=1');
+  final spent = await sum('WHERE done=1');
 
   return {'total': total, 'toBuy': toBuy, 'spent': spent};
 }
@@ -105,16 +120,16 @@ class AppDb {
 Future<Map<String, int>> counters() async {
   final d = await db;
 
-  Future<int> _c(String where) async {
+  Future<int> c(String where) async {
     return Sqflite.firstIntValue(
               await d.rawQuery('SELECT COUNT(*) FROM items $where'),
            ) ?? 0;
   }
 
-  final total = await _c('');
-  final active = await _c('WHERE active=1 AND done=0');
-  final done = await _c('WHERE done=1');
-  final priority = await _c('WHERE priority=1 AND done=0');
+  final total = await c('');
+  final active = await c('WHERE active=1 AND done=0');
+  final done = await c('WHERE done=1');
+  final priority = await c('WHERE priority=1 AND done=0');
 
   return {'total': total, 'active': active, 'done': done, 'priority': priority};
 }

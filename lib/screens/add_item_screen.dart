@@ -15,6 +15,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   final _qtyCtrl = TextEditingController(text: '1');
   final _priceCtrl = TextEditingController(text: '0');
   final _notesCtrl = TextEditingController();
+  bool _priority = false;
 
   final _units = const ['pcs', 'kg', 'g', 'lb', 'L', 'mL'];
   String _unit = 'pcs';
@@ -232,6 +233,48 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         ),
                       ),
                       const SizedBox(height: 22),
+
+                      // Priority selector (bottom of the form)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFE6EAF0)),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        child: Row(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: _priority ? const Color(0xFFFFF3CD) : const Color(0xFFF4F6FA),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.all(8),
+                              child: Icon(
+                                _priority ? Icons.star : Icons.star_border,
+                                color: _priority ? Colors.amber : Colors.black38,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _priority ? 'Marked as priority' : 'Mark as priority',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: _priority ? Colors.black87 : Colors.black54,
+                                ),
+                              ),
+                            ),
+                            Switch(
+                              value: _priority,
+                              onChanged: (v) => setState(() => _priority = v),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 14),
 
                       SizedBox(
                         width: double.infinity,

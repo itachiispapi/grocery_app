@@ -165,7 +165,10 @@ Future<void> _delete(GItem it) async {
                       label: 'Weekly Plan',
                       icon: Icons.calendar_today_rounded,
                       background: const Color(0xFF9E65FF),
-                      onTap: () => Navigator.pushNamed(context, '/weekly'), 
+                      onTap: () async {
+                        final changed = await Navigator.pushNamed(context, '/weekly');
+                        if (mounted && changed == true) setState(_refresh); 
+                      },
                     ),
                   ),
                 ],

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:grocery_app/widgets/weekly_list_popup.dart';
+import '../widgets/weekly_list_popup.dart';
+import '../data/app_db.dart';
 
 class WeeklyPlannerScreen extends StatefulWidget {
   const WeeklyPlannerScreen({super.key});
@@ -10,8 +11,8 @@ class WeeklyPlannerScreen extends StatefulWidget {
 }
 
 class _WeeklyPlannerScreenState extends State<WeeklyPlannerScreen> {
-  late DateTime _weekStart; // Monday of the shown week
-  int _selectedIndex = 0;   // 0..6 (Mon..Sun)
+  late DateTime _weekStart; 
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -22,8 +23,7 @@ class _WeeklyPlannerScreenState extends State<WeeklyPlannerScreen> {
   }
 
   DateTime _startOfWeek(DateTime d) {
-    // Monday as start of week
-    final int delta = (d.weekday + 6) % 7; // Mon->0, Tue->1,... Sun->6
+    final int delta = (d.weekday + 6) % 7; 
     final monday = DateTime(d.year, d.month, d.day).subtract(Duration(days: delta));
     return DateTime(monday.year, monday.month, monday.day);
   }
@@ -38,13 +38,10 @@ class _WeeklyPlannerScreenState extends State<WeeklyPlannerScreen> {
     final sameYear  = start.year == end.year;
 
     if (sameMonth && sameYear) {
-      // Week of Jan 15 – 21, 2025
       return 'Week of ${_monthName(start.month)} ${start.day} - ${end.day}, ${start.year}';
     } else if (!sameMonth && sameYear) {
-      // Week of Jan 29 – Feb 4, 2025
       return 'Week of ${_monthName(start.month)} ${start.day} - ${_monthName(end.month)} ${end.day}, ${start.year}';
     } else {
-      // Week spans New Year
       return 'Week of ${_monthName(start.month)} ${start.day}, ${start.year} - ${_monthName(end.month)} ${end.day}, ${end.year}';
     }
   }
@@ -167,7 +164,6 @@ class _WeeklyBody extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
 
-                      // Lock text scale + scroll horizontally
                       MediaQuery(
                         data: MediaQuery.of(context).copyWith(
                           textScaler: const TextScaler.linear(1.0),
@@ -213,18 +209,38 @@ class _WeeklyBody extends StatelessWidget {
                 const Spacer(),
                 ElevatedButton(
                   onPressed: () async {
-                    final selected = await Navigator.push<List<String>>(
+                    final picks = await Navigator.push<List<Map<String, dynamic>>>(
                       context,
-                      MaterialPageRoute<List<String>>(
+                      MaterialPageRoute<List<Map<String, dynamic>>>(
                         builder: (_) => const WeeklyListPopup(),
                       ),
                     );
-                    if (selected != null && selected.isNotEmpty && context.mounted) {
+                    if (picks == null || picks.isEmpty) return;
+
+                    for (final p in picks) {
+                      final name = (p['name'] as String).trim();
+                      final category = (p['category'] as String).trim(); 
+                      final qty = (p['qty'] as num).toDouble();
+                      final unit = p['unit'] as String;
+
+                      await AppDb.I.addOrActivate(
+                        name: name,
+                        category: category,
+                        qty: qty,
+                        unit: unit,
+                        price: 0,         // default price
+                        notes: '',        // no notes for suggested items
+                        priority: false,  // default not priority
+                      );
+                    }
+
+                    if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Selected ${selected.length} item(s)')),
+                        SnackBar(content: Text('Added ${picks.length} item(s) to your list')),
                       );
                     }
                   },
+
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF34C759),
                     foregroundColor: Colors.white,

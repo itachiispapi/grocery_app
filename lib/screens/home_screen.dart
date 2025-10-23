@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/app_db.dart';
+import '../data/models.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -23,6 +24,7 @@ class _HomeBody extends StatefulWidget {
 class _HomeBodyState extends State<_HomeBody> {
   late Future<Map<String, int>> _counters;
   late Future<Map<String, num>> _sums;
+  late Future<List<GItem>> _items;
 
   @override
   void initState() {
@@ -31,10 +33,24 @@ class _HomeBodyState extends State<_HomeBody> {
   }
 
   void _refresh() {
-    _counters = AppDb.I.counters();
-    _sums = AppDb.I.sums();
-  }
+  _counters = AppDb.I.counters();
+  _sums = AppDb.I.sums();
+  _items = AppDb.I.items(priorityFirst: true); 
+ }
+Future<void> _toggleDone(GItem it) async {
+  await AppDb.I.updateItem(it.copyWith(done: !it.done));
+  setState(_refresh);
+}
 
+Future<void> _togglePriority(GItem it) async {
+  await AppDb.I.updateItem(it.copyWith(priority: !it.priority));
+  setState(_refresh);
+}
+
+Future<void> _delete(GItem it) async {
+  if (it.id != null) await AppDb.I.deleteItem(it.id!);
+  setState(_refresh);
+}
 
   @override
   Widget build(BuildContext context) {
@@ -188,12 +204,78 @@ class _HomeBodyState extends State<_HomeBody> {
 
             const SizedBox(height: 24),
 
-            // Empty state
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: _EmptyStateCard(
-                icon: Icons.shopping_bag_outlined,
-                message: 'No items yet',
+              // Items list (priority-first). Falls back to empty state.
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: FutureBuilder<List<GItem>>(
+                future: _items,
+                builder: (context, snap) {
+                  if (!snap.hasData) {
+                    return const SizedBox(
+                      height: 120,
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  final items = snap.data!;
+                  if (items.isEmpty) {
+                    return const _EmptyStateCard(
+                      icon: Icons.shopping_bag_outlined,
+                      message: 'No items yet',
+                    );
+                  }
+
+                  return ListView.separated(
+                    physics: const NeverScrollableScrollPhysics(),
+                    shrinkWrap: true,
+                    itemCount: items.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (_, i) {
+                      final it = items[i];
+                      final total = (it.qty * it.price).toStringAsFixed(2);
+                      return ListTile(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        tileColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        leading: IconButton(
+                          tooltip: it.priority ? 'Unmark priority' : 'Mark priority',
+                          icon: Icon(it.priority ? Icons.star : Icons.star_border,
+                              color: it.priority ? Colors.amber : Colors.black38),
+                          onPressed: () => _togglePriority(it),
+                        ),
+                        title: Text(
+                          '${it.name} • ${it.qty} ${it.unit} • \$${total}',
+                          style: TextStyle(
+                            fontWeight: it.priority ? FontWeight.w700 : FontWeight.w500,
+                            decoration: it.done ? TextDecoration.lineThrough : null,
+                            color: it.done ? Colors.black54 : null,
+                          ),
+                        ),
+                        subtitle: Text(
+                          it.category,
+                          style: const TextStyle(color: Colors.black54),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: it.done ? 'Mark not done' : 'Mark done',
+                              icon: Icon(
+                                it.done ? Icons.check_box : Icons.check_box_outline_blank,
+                                color: it.done ? const Color(0xFF00B15D) : Colors.black54,
+                              ),
+                              onPressed: () => _toggleDone(it),
+                            ),
+                            IconButton(
+                              tooltip: 'Delete',
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => _delete(it),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
             ),
           ],
@@ -334,7 +416,6 @@ class _PriceEstimationCard extends StatelessWidget {
   final int doneCount;
 
   const _PriceEstimationCard({
-    super.key,
     required this.total,
     required this.toBuy,
     required this.spent,

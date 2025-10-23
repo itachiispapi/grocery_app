@@ -34,6 +34,54 @@ class AppDb {
     await batch.commit(noResult: true);
   }
 
+    Future<int> addOrActivate({
+    required String name,
+    required String category,
+    double qty = 1,
+    String unit = 'pcs',
+    double price = 0,
+    String notes = '',
+    bool priority = false,
+  }) async {
+    final d = await db;
+
+
+    final rows = await d.query(
+      'items',
+      where: 'name = ? AND category = ?',
+      whereArgs: [name, category],
+      limit: 1,
+    );
+
+    if (rows.isNotEmpty) {
+      final it = GItem.fromMap(rows.first);
+      await d.update(
+        'items',
+        {'active': 1, 'done': 0},
+        where: 'id=?',
+        whereArgs: [it.id],
+      );
+      return it.id!;
+    }
+
+    // Insert a brand-new item
+    final now = DateTime.now();
+    final item = GItem(
+      name: name,
+      qty: qty,
+      unit: unit,
+      category: category,
+      price: price,
+      notes: notes,
+      done: false,
+      active: true,
+      priority: priority,
+      createdAt: now,
+    );
+    return await d.insert('items', item.toMap());
+  }
+
+
   Future<void> _onCreate(Database d, int v) async {
     await d.execute('''
       CREATE TABLE items(

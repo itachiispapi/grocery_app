@@ -34,7 +34,7 @@ class AppDb {
     await batch.commit(noResult: true);
   }
 
-    Future<int> addOrActivate({
+  Future<int> addOrActivate({
     required String name,
     required String category,
     double qty = 1,
@@ -45,32 +45,43 @@ class AppDb {
   }) async {
     final d = await db;
 
+    final nName = name.trim();
+    final nCat  = category.trim();
 
     final rows = await d.query(
       'items',
-      where: 'name = ? AND category = ?',
-      whereArgs: [name, category],
+      where: 'LOWER(name) = ? AND LOWER(category) = ?',
+      whereArgs: [nName.toLowerCase(), nCat.toLowerCase()],
       limit: 1,
     );
 
     if (rows.isNotEmpty) {
       final it = GItem.fromMap(rows.first);
+      final keepPriority = (it.priority || priority) ? 1 : 0;
+
       await d.update(
         'items',
-        {'active': 1, 'done': 0},
+        {
+          'qty': qty,
+          'unit': unit,
+          'price': price,
+          'notes': notes,
+          'priority': keepPriority,
+          'active': 1,
+          'done': 0,
+        },
         where: 'id=?',
         whereArgs: [it.id],
       );
       return it.id!;
     }
 
-    // Insert a brand-new item
     final now = DateTime.now();
     final item = GItem(
-      name: name,
+      name: nName,
       qty: qty,
       unit: unit,
-      category: category,
+      category: nCat,
       price: price,
       notes: notes,
       done: false,
@@ -80,7 +91,6 @@ class AppDb {
     );
     return await d.insert('items', item.toMap());
   }
-
 
   Future<void> _onCreate(Database d, int v) async {
     await d.execute('''
@@ -102,15 +112,14 @@ class AppDb {
     await d.execute('''
       CREATE TABLE meal_plan(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        weekday INTEGER NOT NULL, -- 1..7 (Mon..Sun)
-        meal TEXT NOT NULL,       -- 'breakfast' | 'lunch' | 'dinner'
+        weekday INTEGER NOT NULL,
+        meal TEXT NOT NULL,
         item_id INTEGER NOT NULL,
         FOREIGN KEY(item_id) REFERENCES items(id) ON DELETE CASCADE
       )
     ''');
   }
 
-  // CRUD: items
   Future<int> insertItem(GItem it) async =>
       (await db).insert('items', it.toMap());
 
@@ -120,7 +129,7 @@ class AppDb {
   Future<int> deleteItem(int id) async =>
       (await db).delete('items', where: 'id=?', whereArgs: [id]);
 
-  Future<List<GItem>> items({
+    Future<List<GItem>> items({
     String? category,
     bool? done,
     bool? active,
@@ -130,6 +139,7 @@ class AppDb {
   }) async {
     final w = <String>[];
     final a = <Object?>[];
+
     if (category != null) { w.add('category=?'); a.add(category); }
     if (done != null)     { w.add('done=?');     a.add(done ? 1 : 0); }
     if (active != null)   { w.add('active=?');   a.add(active ? 1 : 0); }
@@ -137,52 +147,53 @@ class AppDb {
     if (query != null && query.trim().isNotEmpty) {
       w.add('name LIKE ?'); a.add('%${query.trim()}%');
     }
+
     final rows = await (await db).query(
       'items',
       where: w.isEmpty ? null : w.join(' AND '),
       whereArgs: w.isEmpty ? null : a,
-      orderBy: priorityFirst ? 'priority DESC, created_at DESC' : 'created_at DESC',
+      orderBy: priorityFirst
+          ? 'priority DESC, datetime(created_at) DESC'
+          : 'datetime(created_at) DESC',
     );
     return rows.map(GItem.fromMap).toList();
   }
 
-  // price/counters
   Future<Map<String, num>> sums() async {
-  final d = await db;
+    final d = await db;
 
-  Future<num> sum(String where) async {
-    final rows = await d.rawQuery('SELECT COALESCE(SUM(price*qty), 0.0) AS s FROM items $where');
-    final v = rows.first['s'];
-    if (v is int) return v;
-    if (v is double) return v;
-    return 0;
+    Future<num> sum(String where) async {
+      final rows = await d.rawQuery('SELECT COALESCE(SUM(price*qty), 0.0) AS s FROM items $where');
+      final v = rows.first['s'];
+      if (v is int) return v;
+      if (v is double) return v;
+      return 0;
+    }
+
+    final total = await sum('');
+    final toBuy = await sum('WHERE done=0 AND active=1');
+    final spent = await sum('WHERE done=1');
+
+    return {'total': total, 'toBuy': toBuy, 'spent': spent};
   }
 
-  final total = await sum('');
-  final toBuy = await sum('WHERE done=0 AND active=1');
-  final spent = await sum('WHERE done=1');
+  Future<Map<String, int>> counters() async {
+    final d = await db;
 
-  return {'total': total, 'toBuy': toBuy, 'spent': spent};
-}
+    Future<int> c(String where) async {
+      return Sqflite.firstIntValue(
+        await d.rawQuery('SELECT COUNT(*) FROM items $where'),
+      ) ?? 0;
+    }
 
-Future<Map<String, int>> counters() async {
-  final d = await db;
+    final total = await c('');
+    final active = await c('WHERE active=1 AND done=0');
+    final done = await c('WHERE done=1');
+    final priority = await c('WHERE priority=1 AND active=1 AND done=0');
 
-  Future<int> c(String where) async {
-    return Sqflite.firstIntValue(
-              await d.rawQuery('SELECT COUNT(*) FROM items $where'),
-           ) ?? 0;
+    return {'total': total, 'active': active, 'done': done, 'priority': priority};
   }
 
-  final total = await c('');
-  final active = await c('WHERE active=1 AND done=0');
-  final done = await c('WHERE done=1');
-  final priority = await c('WHERE priority=1 AND done=0');
-
-  return {'total': total, 'active': active, 'done': done, 'priority': priority};
-}
-
-  // meal plan
   Future<int> addMeal({required int weekday, required String meal, required int itemId}) async =>
       (await db).insert('meal_plan', {'weekday': weekday, 'meal': meal, 'item_id': itemId});
 

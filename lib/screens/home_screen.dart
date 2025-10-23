@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/app_db.dart';
 import '../data/models.dart';
+import '../main.dart' show routeObserver;
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -21,7 +22,7 @@ class _HomeBody extends StatefulWidget {
   State<_HomeBody> createState() => _HomeBodyState();
 }
 
-class _HomeBodyState extends State<_HomeBody> {
+class _HomeBodyState extends State<_HomeBody> with RouteAware {
   late Future<Map<String, int>> _counters;
   late Future<Map<String, num>> _sums;
   late Future<List<GItem>> _items;
@@ -32,25 +33,44 @@ class _HomeBodyState extends State<_HomeBody> {
     _refresh();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null) routeObserver.subscribe(this, route);
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    setState(_refresh);
+  }
+
   void _refresh() {
-  _counters = AppDb.I.counters();
-  _sums = AppDb.I.sums();
-  _items = AppDb.I.items(priorityFirst: true); 
- }
-Future<void> _toggleDone(GItem it) async {
-  await AppDb.I.updateItem(it.copyWith(done: !it.done));
-  setState(_refresh);
-}
+    _counters = AppDb.I.counters();
+    _sums = AppDb.I.sums();
+    _items = AppDb.I.items(active: true, done: false, priorityFirst: true);
+  }
 
-Future<void> _togglePriority(GItem it) async {
-  await AppDb.I.updateItem(it.copyWith(priority: !it.priority));
-  setState(_refresh);
-}
+  Future<void> _toggleDone(GItem it) async {
+    await AppDb.I.updateItem(it.copyWith(done: !it.done));
+    setState(_refresh);
+  }
 
-Future<void> _delete(GItem it) async {
-  if (it.id != null) await AppDb.I.deleteItem(it.id!);
-  setState(_refresh);
-}
+  Future<void> _togglePriority(GItem it) async {
+    await AppDb.I.updateItem(it.copyWith(priority: !it.priority));
+    setState(_refresh);
+  }
+
+  Future<void> _delete(GItem it) async {
+    if (it.id != null) await AppDb.I.deleteItem(it.id!);
+    setState(_refresh);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +81,6 @@ Future<void> _delete(GItem it) async {
         padding: const EdgeInsets.only(bottom: 24),
         child: Column(
           children: [
-            // Gradient header
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
@@ -79,7 +98,6 @@ Future<void> _delete(GItem it) async {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title row
                   Row(
                     children: [
                       Container(
@@ -113,8 +131,6 @@ Future<void> _delete(GItem it) async {
                     ],
                   ),
                   const SizedBox(height: 18),
-
-                  // Stats row
                   FutureBuilder<Map<String,int>>(
                     future: _counters,
                     builder: (context, snap) {
@@ -132,10 +148,7 @@ Future<void> _delete(GItem it) async {
                       );
                     },
                   ),
-
                   const SizedBox(height: 16),
-
-                  // Search field
                   const _SearchField(),
                 ],
               ),
@@ -143,7 +156,6 @@ Future<void> _delete(GItem it) async {
 
             const SizedBox(height: 16),
 
-            // Big CTA buttons
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
@@ -166,8 +178,8 @@ Future<void> _delete(GItem it) async {
                       icon: Icons.calendar_today_rounded,
                       background: const Color(0xFF9E65FF),
                       onTap: () async {
-                        final changed = await Navigator.pushNamed(context, '/weekly');
-                        if (mounted && changed == true) setState(_refresh); 
+                        await Navigator.pushNamed(context, '/weekly');
+                        if (mounted) setState(_refresh);
                       },
                     ),
                   ),
@@ -177,11 +189,10 @@ Future<void> _delete(GItem it) async {
 
             const SizedBox(height: 16),
 
-            // Price Estimation card (live data)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: FutureBuilder<List<dynamic>>(
-                future: Future.wait([_sums, _counters]), // [_sums: Map<String,num>, _counters: Map<String,int>]
+                future: Future.wait([_sums, _counters]),
                 builder: (context, snap) {
                   if (!snap.hasData) {
                     return const _PriceEstimationCard(
@@ -204,10 +215,8 @@ Future<void> _delete(GItem it) async {
               ),
             ),
 
-
             const SizedBox(height: 24),
 
-              // Items list (priority-first). Falls back to empty state.
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: FutureBuilder<List<GItem>>(
@@ -288,7 +297,6 @@ Future<void> _delete(GItem it) async {
   }
 }
 
-// Reusable widgets
 class _StatPill extends StatelessWidget {
   final String label;
   final String value;
@@ -442,7 +450,7 @@ class _PriceEstimationCard extends StatelessWidget {
           BoxShadow(
             color: Color(0x14000000),
             blurRadius: 12,
-            offset: Offset(0, 6),
+            offset: const Offset(0, 6),
           ),
         ],
         border: Border.all(color: const Color(0xFFE0F5EA)),
@@ -586,9 +594,12 @@ class _BottomNav extends StatelessWidget {
         NavigationDestination(icon: Icon(Icons.category_outlined), label: 'Categories'),
       ],
       onDestinationSelected: (i) {
-        if (i == 0) return;
+        if (i == 0) {
+          Navigator.popUntil(context, ModalRoute.withName('/'));
+          return;
+        }
         if (i == 1) {
-          Navigator.pushNamed(context, '/weekly'); 
+          Navigator.pushNamed(context, '/weekly');
           return;
         }
         if (i == 2) Navigator.pushNamed(context, '/categories');

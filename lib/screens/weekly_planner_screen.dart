@@ -11,8 +11,9 @@ class WeeklyPlannerScreen extends StatefulWidget {
 }
 
 class _WeeklyPlannerScreenState extends State<WeeklyPlannerScreen> {
-  late DateTime _weekStart; 
+  late DateTime _weekStart;
   int _selectedIndex = 0;
+  bool _mutated = false;
 
   @override
   void initState() {
@@ -23,7 +24,7 @@ class _WeeklyPlannerScreenState extends State<WeeklyPlannerScreen> {
   }
 
   DateTime _startOfWeek(DateTime d) {
-    final int delta = (d.weekday + 6) % 7; 
+    final int delta = (d.weekday + 6) % 7;
     final monday = DateTime(d.year, d.month, d.day).subtract(Duration(days: delta));
     return DateTime(monday.year, monday.month, monday.day);
   }
@@ -55,17 +56,25 @@ class _WeeklyPlannerScreenState extends State<WeeklyPlannerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F7FB),
-      body: SafeArea(child: _WeeklyBody(
-        weekTitle: _weekTitle(_weekStart),
-        days: _days,
-        selectedIndex: _selectedIndex,
-        onTapPrev: _prevWeek,
-        onTapNext: _nextWeek,
-        onSelectDay: _selectDay,
-      )),
-      bottomNavigationBar: const _BottomNav(index: 1),
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pop(context, _mutated);
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF6F7FB),
+        body: SafeArea(
+          child: _WeeklyBody(
+            weekTitle: _weekTitle(_weekStart),
+            days: _days,
+            selectedIndex: _selectedIndex,
+            onTapPrev: _prevWeek,
+            onTapNext: _nextWeek,
+            onSelectDay: _selectDay,
+          ),
+        ),
+        bottomNavigationBar: const _BottomNav(index: 1),
+      ),
     );
   }
 }
@@ -99,7 +108,6 @@ class _WeeklyBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Container(
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.fromLTRB(12, 16, 16, 20),
@@ -120,7 +128,7 @@ class _WeeklyBody extends StatelessWidget {
                   children: [
                     _HeaderIconButton(
                       icon: Icons.arrow_back_ios_new_rounded,
-                      onTap: () => Navigator.pop(context),
+                      onTap: () => Navigator.pop(context, false),
                     ),
                     const SizedBox(width: 8),
                     Column(
@@ -138,8 +146,6 @@ class _WeeklyBody extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-
-                // Week strip
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(.12),
@@ -163,7 +169,6 @@ class _WeeklyBody extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 10),
-
                       MediaQuery(
                         data: MediaQuery.of(context).copyWith(
                           textScaler: const TextScaler.linear(1.0),
@@ -196,7 +201,6 @@ class _WeeklyBody extends StatelessWidget {
             ),
           ),
 
-          // Section title + button
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -219,7 +223,7 @@ class _WeeklyBody extends StatelessWidget {
 
                     for (final p in picks) {
                       final name = (p['name'] as String).trim();
-                      final category = (p['category'] as String).trim(); 
+                      final category = (p['category'] as String).trim();
                       final qty = (p['qty'] as num).toDouble();
                       final unit = p['unit'] as String;
 
@@ -228,19 +232,15 @@ class _WeeklyBody extends StatelessWidget {
                         category: category,
                         qty: qty,
                         unit: unit,
-                        price: 0,         // default price
-                        notes: '',        // no notes for suggested items
-                        priority: false,  // default not priority
+                        price: 0,
+                        notes: '',
+                        priority: false,
                       );
                     }
 
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Added ${picks.length} item(s) to your list')),
-                      );
-                    }
+                    if (!context.mounted) return;
+                    Navigator.pop(context, true);
                   },
-
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF34C759),
                     foregroundColor: Colors.white,
@@ -256,7 +256,6 @@ class _WeeklyBody extends StatelessWidget {
           ),
           const SizedBox(height: 8),
 
-          // Meal sections
           const _MealSection(
             colorTop: Color(0xFFFFF3BF),
             dividerColor: Color(0xFFF7D34A),
@@ -280,8 +279,6 @@ class _WeeklyBody extends StatelessWidget {
     );
   }
 }
-
-// ───────── helpers
 
 class _HeaderIconButton extends StatelessWidget {
   final IconData icon;
@@ -517,7 +514,7 @@ class _BottomNav extends StatelessWidget {
       ],
       onDestinationSelected: (i) {
         if (i == 0) Navigator.popUntil(context, ModalRoute.withName('/'));
-        if (i == 1) {} // stay
+        if (i == 1) {}
         if (i == 2) Navigator.pushNamed(context, '/categories');
       },
     );

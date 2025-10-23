@@ -3,7 +3,8 @@ import 'screens/home_screen.dart';
 import 'screens/add_item_screen.dart';
 import 'screens/categories_screen.dart';
 import 'screens/weekly_planner_screen.dart';
-import 'widgets/weekly_list_popup.dart';
+
+final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
 void main() {
   runApp(const GroceryApp());
@@ -20,13 +21,13 @@ class GroceryApp extends StatelessWidget {
         primarySwatch: Colors.green,
         useMaterial3: true,
       ),
+      navigatorObservers: [routeObserver],
       initialRoute: '/',
       routes: {
         '/': (context) => const HomeScreen(),
         '/add': (context) => const AddItemScreen(),
         '/categories': (context) => const CategoriesScreen(),
-        '/weekly': (context) => const WeeklyPlannerScreen(), 
-        '/weekly_list': (context) => const WeeklyListPopup(), 
+        '/weekly': (context) => const WeeklyPlannerScreen(),
       },
     );
   }

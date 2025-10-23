@@ -21,7 +21,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   String _unit = 'pcs';
 
   final List<String> _cats = const [
-    'Vegetables','Fruit','Dairy','Bakery', 'Meats','Beverages','Snacks','Household','Other'
+    'Vegetables','Fruits','Dairy','Bakery', 'Meats','Beverages','Snacks','Household','Other'
   ];
   String _selectedCat = 'Other';
 
@@ -300,7 +300,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                               notes: _notesCtrl.text.trim(),
                               done: false,
                               active: true,
-                              priority: false, // will add UI toggle in next commit
+                              priority: _priority,
                               createdAt: DateTime.now(),
                             );
                             await AppDb.I.insertItem(item);

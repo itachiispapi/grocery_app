@@ -381,26 +381,26 @@ class _PriceEstimationCard extends StatelessWidget {
           ]),
           const SizedBox(height: 12),
           Row(
-            children: const [
+            children: [
               _EstimationTile(
                 labelTop: 'Total',
-                amount: '\$0.00',
-                subtitle: '0 items',
-                amountColor: Color(0xFF00B15D),
+                amount: '\$${total.toStringAsFixed(2)}',
+                subtitle: '$totalCount items',
+                amountColor: const Color(0xFF00B15D),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               _EstimationTile(
                 labelTop: 'To Buy',
-                amount: '\$0.00',
-                subtitle: '0 left',
-                amountColor: Color(0xFF3B36FF),
+                amount: '\$${toBuy.toStringAsFixed(2)}',
+                subtitle: '$leftCount left',
+                amountColor: const Color(0xFF3B36FF),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               _EstimationTile(
                 labelTop: 'Spent',
-                amount: '\$0.00',
-                subtitle: '0 done',
-                amountColor: Color(0xFF8A00D4),
+                amount: '\$${spent.toStringAsFixed(2)}',
+                subtitle: '$doneCount done',
+                amountColor: const Color(0xFF8A00D4),
               ),
             ],
           ),

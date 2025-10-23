@@ -8,12 +8,12 @@ class WeeklyListPopup extends StatefulWidget {
 }
 
 class _WeeklyListPopupState extends State<WeeklyListPopup> {
-  // Placeholder data, database integration to be implemented
-  final Map<String, List<String>> _data = const {
-    'Vegetables': ['Lettuce', 'Tomatoes', 'Onions'],
-    'Fruits': ['Bananas', 'Apples'],
+  // Use the exact category strings in your app (note: Fruits plural)
+  final Map<String, List<String>> _suggested = const {
+    'Vegetables': ['Lettuce', 'Tomatoes', 'Onions', 'Cucumbers'],
+    'Fruits': ['Bananas', 'Apples', 'Strawberries'],
     'Dairy': ['Milk', 'Eggs', 'Yogurt'],
-    'Bakery': ['Bread', 'Bagels'],
+    'Bakery': ['Bread', 'Bagels', 'Tortillas'],
     'Meats': ['Chicken Breast', 'Ground Beef', 'Salmon'],
     'Beverages': ['Orange Juice', 'Coffee'],
     'Snacks': ['Chips', 'Granola Bars'],
@@ -21,6 +21,7 @@ class _WeeklyListPopupState extends State<WeeklyListPopup> {
     'Other': ['Foil', 'Sandwich Bags'],
   };
 
+  // Track selections by a stable key
   final Set<String> _selected = {};
 
   @override
@@ -35,7 +36,7 @@ class _WeeklyListPopupState extends State<WeeklyListPopup> {
       body: SafeArea(
         child: Column(
           children: [
-            // Gradient header
+            // Header
             Container(
               padding: const EdgeInsets.fromLTRB(8, 16, 16, 20),
               width: double.infinity,
@@ -60,14 +61,26 @@ class _WeeklyListPopupState extends State<WeeklyListPopup> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Weekly List', style: titleStyle),
-                      Text('Select items to activate for this week', style: subStyle),
+                      Text('Select suggested items to add', style: subStyle),
                     ],
                   ),
                   const Spacer(),
                   ElevatedButton(
                     onPressed: _selected.isEmpty
                         ? null
-                        : () => Navigator.pop(context, _selected.toList()),
+                        : () {
+                            // Build a structured payload: List<Map<String,dynamic>>
+                            final picks = _selected.map((key) {
+                              final split = key.split('::'); // [category, name]
+                              return {
+                                'name': split[1],
+                                'category': split[0],
+                                'qty': 1.0,
+                                'unit': 'pcs',
+                              };
+                            }).toList();
+                            Navigator.pop(context, picks);
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF34C759),
                       foregroundColor: Colors.white,
@@ -89,11 +102,13 @@ class _WeeklyListPopupState extends State<WeeklyListPopup> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: ListView(
-                  children: _data.entries.map((e) {
+                  children: _suggested.entries.map((e) {
+                    final cat = e.key;
                     final items = e.value;
                     if (items.isEmpty) return const SizedBox.shrink();
                     final anyUnchecked =
-                        items.any((x) => !_selected.contains('${e.key}::$x'));
+                        items.any((x) => !_selected.contains('$cat::$x'));
+
                     return Container(
                       margin: const EdgeInsets.only(bottom: 14),
                       decoration: BoxDecoration(
@@ -110,24 +125,22 @@ class _WeeklyListPopupState extends State<WeeklyListPopup> {
                       ),
                       child: Column(
                         children: [
-                          // block header
+                          // Section header
                           Padding(
                             padding: const EdgeInsets.fromLTRB(14, 12, 8, 4),
                             child: Row(
                               children: [
-                                Text(e.key,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w700, fontSize: 16)),
+                                Text(cat, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                                 const Spacer(),
                                 TextButton(
                                   onPressed: () => setState(() {
                                     if (anyUnchecked) {
                                       for (final it in items) {
-                                        _selected.add('${e.key}::$it');
+                                        _selected.add('$cat::$it');
                                       }
                                     } else {
                                       for (final it in items) {
-                                        _selected.remove('${e.key}::$it');
+                                        _selected.remove('$cat::$it');
                                       }
                                     }
                                   }),
@@ -137,23 +150,22 @@ class _WeeklyListPopupState extends State<WeeklyListPopup> {
                             ),
                           ),
                           const Divider(height: 1),
-                          // checkboxes
+                          // Items
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4),
                             child: Column(
                               children: items.map((it) {
-                                final key = '${e.key}::$it';
+                                final key = '$cat::$it';
+                                final checked = _selected.contains(key);
                                 return CheckboxListTile(
                                   dense: true,
-                                  value: _selected.contains(key),
+                                  value: checked,
                                   onChanged: (_) => setState(() {
-                                    if (_selected.contains(key)) {
-                                      _selected.remove(key);
-                                    } else {
-                                      _selected.add(key);
-                                    }
+                                    if (checked) _selected.remove(key);
+                                    else _selected.add(key);
                                   }),
                                   title: Text(it),
+                                  subtitle: Text(cat),
                                 );
                               }).toList(),
                             ),

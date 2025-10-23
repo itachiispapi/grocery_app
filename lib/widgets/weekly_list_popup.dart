@@ -8,7 +8,6 @@ class WeeklyListPopup extends StatefulWidget {
 }
 
 class _WeeklyListPopupState extends State<WeeklyListPopup> {
-  // Use the exact category strings in your app (note: Fruits plural)
   final Map<String, List<String>> _suggested = const {
     'Vegetables': ['Lettuce', 'Tomatoes', 'Onions', 'Cucumbers'],
     'Fruits': ['Bananas', 'Apples', 'Strawberries'],
@@ -21,7 +20,6 @@ class _WeeklyListPopupState extends State<WeeklyListPopup> {
     'Other': ['Foil', 'Sandwich Bags'],
   };
 
-  // Track selections by a stable key
   final Set<String> _selected = {};
 
   @override
@@ -165,7 +163,6 @@ class _WeeklyListPopupState extends State<WeeklyListPopup> {
                                     else _selected.add(key);
                                   }),
                                   title: Text(it),
-                                  subtitle: Text(cat),
                                 );
                               }).toList(),
                             ),

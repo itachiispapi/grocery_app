@@ -8,88 +8,38 @@ class AppDb {
   static final AppDb I = AppDb._();
 
   static const _name = 'grocery.db';
-  static const _version = 1;
+  static const _version = 2; // <-- bump version for migration
   Database? _db;
 
   Future<Database> get db async {
     if (_db != null) return _db!;
     final dir = await getApplicationDocumentsDirectory();
     final path = join(dir.path, _name);
-    _db = await openDatabase(path, version: _version, onCreate: _onCreate);
+
+    _db = await openDatabase(
+      path,
+      version: _version,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
     return _db!;
   }
 
-  Future<void> setActiveForIds(List<int> ids, {bool active = true, bool done = false}) async {
-    if (ids.isEmpty) return;
-    final d = await db;
-    final batch = d.batch();
-    for (final id in ids) {
-      batch.update(
-        'items',
-        {'active': active ? 1 : 0, 'done': done ? 1 : 0},
-        where: 'id=?',
-        whereArgs: [id],
-      );
+  // --- Migration for existing users ---
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+        CREATE TABLE meals(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          category TEXT NOT NULL,
+          qty REAL NOT NULL,
+          unit TEXT NOT NULL,
+          mealType TEXT NOT NULL,
+          dateKey TEXT NOT NULL
+        )
+      ''');
     }
-    await batch.commit(noResult: true);
-  }
-
-  Future<int> addOrActivate({
-    required String name,
-    required String category,
-    double qty = 1,
-    String unit = 'pcs',
-    double price = 0,
-    String notes = '',
-    bool priority = false,
-  }) async {
-    final d = await db;
-
-    final nName = name.trim();
-    final nCat  = category.trim();
-
-    final rows = await d.query(
-      'items',
-      where: 'LOWER(name) = ? AND LOWER(category) = ?',
-      whereArgs: [nName.toLowerCase(), nCat.toLowerCase()],
-      limit: 1,
-    );
-
-    if (rows.isNotEmpty) {
-      final it = GItem.fromMap(rows.first);
-      final keepPriority = (it.priority || priority) ? 1 : 0;
-
-      await d.update(
-        'items',
-        {
-          'qty': qty,
-          'unit': unit,
-          'price': price,
-          'notes': notes,
-          'priority': keepPriority,
-          'active': 1,
-          'done': 0,
-        },
-        where: 'id=?',
-        whereArgs: [it.id],
-      );
-      return it.id!;
-    }
-
-    final now = DateTime.now();
-    final item = GItem(
-      name: nName,
-      qty: qty,
-      unit: unit,
-      category: nCat,
-      price: price,
-      notes: notes,
-      done: false,
-      active: true,
-      priority: priority,
-      createdAt: now,
-    );
-    return await d.insert('items', item.toMap());
   }
 
   Future<void> _onCreate(Database d, int v) async {
@@ -118,8 +68,64 @@ class AppDb {
         FOREIGN KEY(item_id) REFERENCES items(id) ON DELETE CASCADE
       )
     ''');
+
+    await d.execute('''
+      CREATE TABLE meals(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        qty REAL NOT NULL,
+        unit TEXT NOT NULL,
+        mealType TEXT NOT NULL,
+        dateKey TEXT NOT NULL
+      )
+    ''');
   }
 
+  // --- RESET APP ---
+  Future<void> resetApp() async {
+    final d = await db;
+    // Delete all data from tables
+    await d.delete('items');
+    await d.delete('meal_plan');
+    await d.delete('meals');
+  }
+
+  // --- MEAL METHODS ---
+  Future<int> addMeal({
+    required String name,
+    required String category,
+    required double qty,
+    required String unit,
+    required String mealType,
+    required String dateKey,
+  }) async {
+    final db = await this.db;
+    return db.insert('meals', {
+      'name': name,
+      'category': category,
+      'qty': qty,
+      'unit': unit,
+      'mealType': mealType,
+      'dateKey': dateKey,
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getMeals(String dateKey, String mealType) async {
+    final db = await this.db;
+    return db.query(
+      'meals',
+      where: 'dateKey=? AND mealType=?',
+      whereArgs: [dateKey, mealType],
+    );
+  }
+
+  Future<int> deleteMeal(int id) async {
+    final db = await this.db;
+    return db.delete('meals', where: 'id=?', whereArgs: [id]);
+  }
+
+  // --- ITEM METHODS ---
   Future<int> insertItem(GItem it) async =>
       (await db).insert('items', it.toMap());
 
@@ -129,7 +135,7 @@ class AppDb {
   Future<int> deleteItem(int id) async =>
       (await db).delete('items', where: 'id=?', whereArgs: [id]);
 
-    Future<List<GItem>> items({
+  Future<List<GItem>> items({
     String? category,
     bool? done,
     bool? active,
@@ -194,9 +200,21 @@ class AppDb {
     return {'total': total, 'active': active, 'done': done, 'priority': priority};
   }
 
-  Future<int> addMeal({required int weekday, required String meal, required int itemId}) async =>
-      (await db).insert('meal_plan', {'weekday': weekday, 'meal': meal, 'item_id': itemId});
+  Future<int> addMealToPlan({
+    required int weekday,
+    required String meal,
+    required int itemId,
+  }) async {
+    final db = await this.db;
+    return await db.insert('meal_plan', {
+      'weekday': weekday,
+      'meal': meal,
+      'item_id': itemId,
+    });
+  }
 
-  Future<int> deleteMeal(int id) async =>
-      (await db).delete('meal_plan', where: 'id=?', whereArgs: [id]);
+  Future<int> deleteMealFromPlan(int id) async {
+    final db = await this.db;
+    return await db.delete('meal_plan', where: 'id=?', whereArgs: [id]);
+  }
 }

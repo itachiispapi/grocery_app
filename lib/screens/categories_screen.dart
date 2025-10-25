@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'category_items_screen.dart';
+
 
 class CategoriesScreen extends StatelessWidget {
   const CategoriesScreen({super.key});
@@ -87,6 +89,11 @@ class CategoriesScreen extends StatelessWidget {
                       icon: Icons.cookie_outlined,
                     ),
                     _CategoryCard(
+                      color: Color(0xFFFFF2FC),
+                      label: 'Meats',
+                      icon: Icons.outdoor_grill,
+                    ),
+                    _CategoryCard(
                       color: Color(0xFFEFF8FF),
                       label: 'Beverages',
                       icon: Icons.local_drink_outlined,
@@ -129,8 +136,9 @@ class _CategoryCard extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(18),
       onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Open "$label"')),
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => CategoryItemsScreen(category: label)),
         );
       },
       child: Container(

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../data/app_db.dart';
+import '../data/models.dart';
 
 class AddItemScreen extends StatefulWidget {
   const AddItemScreen({super.key});
@@ -13,12 +15,13 @@ class _AddItemScreenState extends State<AddItemScreen> {
   final _qtyCtrl = TextEditingController(text: '1');
   final _priceCtrl = TextEditingController(text: '0');
   final _notesCtrl = TextEditingController();
+  bool _priority = false;
 
   final _units = const ['pcs', 'kg', 'g', 'lb', 'L', 'mL'];
   String _unit = 'pcs';
 
   final List<String> _cats = const [
-    'Produce','Dairy','Meat','Snacks','Beverages','Bakery','Frozen','Pantry','Other'
+    'Vegetables','Fruits','Dairy','Bakery', 'Meats','Beverages','Snacks','Household','Other'
   ];
   String _selectedCat = 'Other';
 
@@ -149,7 +152,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                               children: [
                                 _FieldLabel('Unit'),
                                 DropdownButtonFormField<String>(
-                                  value: _unit,
+                                  initialValue: _unit,
                                   decoration: InputDecoration(
                                     filled: true,
                                     fillColor: Colors.white,
@@ -231,6 +234,48 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       ),
                       const SizedBox(height: 22),
 
+                      // Priority selector (bottom of the form)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFE6EAF0)),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        child: Row(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: _priority ? const Color(0xFFFFF3CD) : const Color(0xFFF4F6FA),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.all(8),
+                              child: Icon(
+                                _priority ? Icons.star : Icons.star_border,
+                                color: _priority ? Colors.amber : Colors.black38,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _priority ? 'Marked as priority' : 'Mark as priority',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: _priority ? Colors.black87 : Colors.black54,
+                                ),
+                              ),
+                            ),
+                            Switch(
+                              value: _priority,
+                              onChanged: (v) => setState(() => _priority = v),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 14),
+
                       SizedBox(
                         width: double.infinity,
                         height: 56,
@@ -243,18 +288,30 @@ class _AddItemScreenState extends State<AddItemScreen> {
                             ),
                             elevation: 0,
                           ),
-                          onPressed: () {
+                          onPressed: () async {
                             if (!_formKey.currentState!.validate()) return;
-                            // TODO: hook into your data store
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Added "${_nameCtrl.text}" • $_selectedCat • ${_qtyCtrl.text} $_unit',
-                                ),
-                              ),
+
+                            final item = GItem(
+                              name: _nameCtrl.text.trim(),
+                              qty: double.tryParse(_qtyCtrl.text.trim())?.toDouble() ?? 1,
+                              unit: _unit,
+                              category: _selectedCat,
+                              price: double.tryParse(_priceCtrl.text.trim()) ?? 0,
+                              notes: _notesCtrl.text.trim(),
+                              done: false,
+                              active: true,
+                              priority: _priority,
+                              createdAt: DateTime.now(),
                             );
-                            Navigator.pop(context);
+                            await AppDb.I.insertItem(item);
+
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Added "${item.name}"')),
+                            );
+                            Navigator.pop(context, true);
                           },
+
                           child: const Text(
                             'Add to List',
                             style: TextStyle(
@@ -271,7 +328,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: const _BottomNav(index: 1), // optional
+      bottomNavigationBar: const _BottomNav(index: 1), 
     );
   }
 }

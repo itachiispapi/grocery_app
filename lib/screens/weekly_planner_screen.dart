@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/app_db.dart';
+import '../screens/categories_screen.dart';
+import '../data/models.dart'; 
 
 class WeeklyPlannerScreen extends StatefulWidget {
   const WeeklyPlannerScreen({super.key});
@@ -26,7 +28,8 @@ class _WeeklyPlannerScreenState extends State<WeeklyPlannerScreen> {
   }
 
   String _monthName(int m) => const [
-        'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
       ][m - 1];
 
   String _weekTitle(DateTime start) {
@@ -153,7 +156,7 @@ class _WeeklyBody extends StatelessWidget {
                           itemCount: days.length,
                           itemBuilder: (context, i) {
                             final d = days[i];
-                            final label = const ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i];
+                            final label = const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i];
                             final selected = i == selectedIndex;
                             return GestureDetector(
                               onTap: () => onSelectDay(i),
@@ -223,32 +226,96 @@ class _MealSectionState extends State<_MealSection> {
     setState(() => _meals = data);
   }
 
+  
   Future<void> _addMeal() async {
-    final controller = TextEditingController();
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Add ${widget.title}'),
-        content: TextField(controller: controller, decoration: const InputDecoration(hintText: 'Enter meal name')),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('Add')),
+  final nameController = TextEditingController();
+  final qtyController = TextEditingController(text: '1');
+  final unitController = TextEditingController(text: 'pcs');
+  String category = 'Default'; // initial default category
+
+  
+  final nameResult = await showDialog<String>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text('Add ${widget.title}'),
+      content: TextField(
+        controller: nameController,
+        decoration: const InputDecoration(labelText: 'Meal Name'),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        ElevatedButton(onPressed: () => Navigator.pop(ctx, nameController.text.trim()), child: const Text('Next')),
+      ],
+    ),
+  );
+
+  if (nameResult == null || nameResult.isEmpty) return;
+
+  
+  final chosenCategory = await Navigator.push<String>(
+    context,
+    MaterialPageRoute(
+      builder: (context) => const CategoriesScreen(isSelecting: true),
+    ),
+  );
+  if (chosenCategory != null) category = chosenCategory;
+
+  
+  final qtyResult = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text('Details for ${widget.title}'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: qtyController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Quantity'),
+          ),
+          TextField(
+            controller: unitController,
+            decoration: const InputDecoration(labelText: 'Unit'),
+          ),
         ],
       ),
-    );
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+        ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Add')),
+      ],
+    ),
+  );
 
-    if (result != null && result.isNotEmpty) {
-      await AppDb.I.addMeal(
-        name: result,
-        category: 'Default',
-        qty: 1,
-        unit: 'pcs',
-        mealType: widget.mealType,
-        dateKey: widget.dateKey,
-      );
-      _loadMeals();
-    }
-  }
+  if (qtyResult != true) return;
+
+  
+  final mealId = await AppDb.I.addMeal(
+    name: nameController.text.trim(),
+    category: category,
+    qty: double.tryParse(qtyController.text) ?? 1.0,
+    unit: unitController.text.trim(),
+    mealType: widget.mealType,
+    dateKey: widget.dateKey,
+  );
+
+  
+  await AppDb.I.insertItem(GItem(
+    id: null,
+    name: nameController.text.trim(),
+    qty: double.tryParse(qtyController.text) ?? 1.0,
+    unit: unitController.text.trim(),
+    category: category,
+    price: 0.0, 
+    notes: '',
+    done: false,
+    active: true,
+    priority: false,
+    createdAt: DateTime.now(),
+  ));
+
+  _loadMeals(); 
+}
+
 
   Future<void> _deleteMeal(int id) async {
     await AppDb.I.deleteMeal(id);
@@ -266,7 +333,10 @@ class _MealSectionState extends State<_MealSection> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.grey[200], borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16))),
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -287,6 +357,7 @@ class _MealSectionState extends State<_MealSection> {
               Column(
                 children: _meals.map((m) => ListTile(
                   title: Text(m['name']),
+                  subtitle: Text('${m['qty']} ${m['unit']} • ${m['category']}'),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete, color: Colors.redAccent),
                     onPressed: () => _deleteMeal(m['id']),

@@ -73,7 +73,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 tileColor: Colors.white,
                 title: Text(
-                  '${it.name} • ${it.qty} ${it.unit} • \$${total}',
+                  '${it.name} • ${it.qty} ${it.unit} • \$$total',
                   style: TextStyle(
                     decoration: it.done ? TextDecoration.lineThrough : null,
                     color: it.done ? Colors.black54 : null,

@@ -81,6 +81,7 @@ class _HomeBodyState extends State<_HomeBody> with RouteAware {
         padding: const EdgeInsets.only(bottom: 24),
         child: Column(
           children: [
+            // Top Header
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
@@ -143,7 +144,7 @@ class _HomeBodyState extends State<_HomeBody> with RouteAware {
                           const SizedBox(width: 12),
                           _StatPill(label: 'Done', value: '${c['done'] ?? 0}'),
                           const SizedBox(width: 12),
-                          _StatPill(label: '', value: '${c['priority'] ?? 0}', icon: Icons.star),
+                          _StatPill(label: 'Priority', value: '${c['priority'] ?? 0}', icon: Icons.star),
                         ],
                       );
                     },
@@ -156,32 +157,57 @@ class _HomeBodyState extends State<_HomeBody> with RouteAware {
 
             const SizedBox(height: 16),
 
-            Padding(
+            // Button Row: Add, Weekly, Reset
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  Expanded(
-                    child: _BigButton(
-                      label: 'Add Item',
-                      icon: Icons.add,
-                      background: const Color(0xFF0AD06E),
-                      onTap: () async {
-                        final added = await Navigator.pushNamed(context, '/add');
-                        if (added == true && mounted) setState(_refresh);
-                      },
-                    ),
+                  _BigButton(
+                    label: 'Add Item',
+                    icon: Icons.add,
+                    background: const Color(0xFF0AD06E),
+                    onTap: () async {
+                      final added = await Navigator.pushNamed(context, '/add');
+                      if (added == true && mounted) setState(_refresh);
+                    },
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _BigButton(
-                      label: 'Weekly Plan',
-                      icon: Icons.calendar_today_rounded,
-                      background: const Color(0xFF9E65FF),
-                      onTap: () async {
-                        await Navigator.pushNamed(context, '/weekly');
+                  const SizedBox(width: 12),
+                  _BigButton(
+                    label: 'Weekly Plan',
+                    icon: Icons.calendar_today_rounded,
+                    background: const Color(0xFF9E65FF),
+                    onTap: () async {
+                      await Navigator.pushNamed(context, '/weekly');
+                      if (mounted) setState(_refresh);
+                    },
+                  ),
+                  const SizedBox(width: 12),
+                  _BigButton(
+                    label: 'Reset App',
+                    icon: Icons.restart_alt,
+                    background: Colors.redAccent,
+                    onTap: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Reset App'),
+                          content: const Text('Are you sure you want to reset the app? All data will be lost.'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Reset')),
+                          ],
+                        ),
+                      );
+
+                      if (confirm == true) {
+                        await AppDb.I.resetApp();
                         if (mounted) setState(_refresh);
-                      },
-                    ),
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('App reset successfully!')),
+                        );
+                      }
+                    },
                   ),
                 ],
               ),
@@ -189,6 +215,7 @@ class _HomeBodyState extends State<_HomeBody> with RouteAware {
 
             const SizedBox(height: 16),
 
+            // Price Estimation Card
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: FutureBuilder<List<dynamic>>(
@@ -217,6 +244,7 @@ class _HomeBodyState extends State<_HomeBody> with RouteAware {
 
             const SizedBox(height: 24),
 
+            // Item List
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: FutureBuilder<List<GItem>>(
@@ -297,67 +325,52 @@ class _HomeBodyState extends State<_HomeBody> with RouteAware {
   }
 }
 
+// ------------------ HELPER WIDGETS ------------------
+
 class _StatPill extends StatelessWidget {
   final String label;
   final String value;
   final IconData? icon;
-  const _StatPill({required this.label, required this.value, this.icon});
+
+  const _StatPill({this.label = '', this.value = '', this.icon, super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        height: 64,
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(.15),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withOpacity(.25)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            icon == null
-                ? Text(value,
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w700))
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(icon, color: Colors.amberAccent, size: 18),
-                      const SizedBox(width: 4),
-                      Text(value,
-                          style: const TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.w700)),
-                    ],
-                  ),
-            if (label.isNotEmpty)
-              Text(label,
-                  style: TextStyle(
-                      color: Colors.white.withOpacity(.9), fontSize: 12)),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(.2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          if (icon != null) Icon(icon, size: 16, color: Colors.white),
+          if (icon != null) const SizedBox(width: 4),
+          if (label.isNotEmpty)
+            Text(label, style: const TextStyle(color: Colors.white)),
+          if (label.isNotEmpty) const SizedBox(width: 4),
+          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        ],
       ),
     );
   }
 }
 
 class _SearchField extends StatelessWidget {
-  const _SearchField();
+  const _SearchField({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 48,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: const TextField(
-        decoration: InputDecoration(
-          hintText: 'Search items...',
-          prefixIcon: Icon(Icons.search),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+    return TextField(
+      decoration: InputDecoration(
+        hintText: 'Search items...',
+        filled: true,
+        fillColor: Colors.white,
+        prefixIcon: const Icon(Icons.search),
+        contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
         ),
       ),
     );
@@ -369,47 +382,34 @@ class _BigButton extends StatelessWidget {
   final IconData icon;
   final Color background;
   final VoidCallback onTap;
+
   const _BigButton({
     required this.label,
     required this.icon,
     required this.background,
     required this.onTap,
+    super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
+    return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 84,
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
           color: background,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: background.withOpacity(.35),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(12),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.all(10),
-              child: Icon(icon, color: Colors.white),
-            ),
-            const SizedBox(width: 12),
+            Icon(icon, color: Colors.white),
+            const SizedBox(width: 8),
             Text(
               label,
-              style: const TextStyle(
-                  color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -433,69 +433,28 @@ class _PriceEstimationCard extends StatelessWidget {
     required this.totalCount,
     required this.leftCount,
     required this.doneCount,
+    super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w700,
-        );
-
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFEFFFF8),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x14000000),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-        border: Border.all(color: const Color(0xFFE0F5EA)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFF00C16A),
-                shape: BoxShape.circle,
-              ),
-              padding: const EdgeInsets.all(6),
-              child: const Icon(Icons.savings_rounded,
-                  color: Colors.white, size: 16),
-            ),
-            const SizedBox(width: 8),
-            Text('Price Estimation', style: titleStyle),
-          ]),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _EstimationTile(
-                labelTop: 'Total',
-                amount: '\$${total.toStringAsFixed(2)}',
-                subtitle: '$totalCount items',
-                amountColor: const Color(0xFF00B15D),
-              ),
-              const SizedBox(width: 12),
-              _EstimationTile(
-                labelTop: 'To Buy',
-                amount: '\$${toBuy.toStringAsFixed(2)}',
-                subtitle: '$leftCount left',
-                amountColor: const Color(0xFF3B36FF),
-              ),
-              const SizedBox(width: 12),
-              _EstimationTile(
-                labelTop: 'Spent',
-                amount: '\$${spent.toStringAsFixed(2)}',
-                subtitle: '$doneCount done',
-                amountColor: const Color(0xFF8A00D4),
-              ),
-            ],
-          ),
+          const Text('Price Estimation', style: TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          _EstimationTile(label: 'Total', value: total),
+          _EstimationTile(label: 'To Buy', value: toBuy),
+          _EstimationTile(label: 'Spent', value: spent),
+          const SizedBox(height: 8),
+          Text('Items: $totalCount (Left: $leftCount, Done: $doneCount)'),
         ],
       ),
     );
@@ -503,41 +462,21 @@ class _PriceEstimationCard extends StatelessWidget {
 }
 
 class _EstimationTile extends StatelessWidget {
-  final String labelTop;
-  final String amount;
-  final String subtitle;
-  final Color amountColor;
+  final String label;
+  final double value;
 
-  const _EstimationTile({
-    required this.labelTop,
-    required this.amount,
-    required this.subtitle,
-    required this.amountColor,
-  });
+  const _EstimationTile({required this.label, required this.value, super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        height: 90,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE9EEF4)),
-        ),
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(labelTop, style: const TextStyle(fontSize: 12, color: Colors.black54)),
-            const SizedBox(height: 4),
-            Text(amount,
-                style: TextStyle(
-                    fontWeight: FontWeight.w800, fontSize: 16, color: amountColor)),
-            const Spacer(),
-            Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.black45)),
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text('\$${value.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700)),
+        ],
       ),
     );
   }
@@ -546,33 +485,24 @@ class _EstimationTile extends StatelessWidget {
 class _EmptyStateCard extends StatelessWidget {
   final IconData icon;
   final String message;
-  const _EmptyStateCard({required this.icon, required this.message});
+
+  const _EmptyStateCard({required this.icon, required this.message, super.key});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 180,
+      height: 120,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: const [
-          BoxShadow(color: Color(0x0F000000), blurRadius: 12, offset: Offset(0, 8))
-        ],
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Center(
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: const BoxDecoration(
-                color: Color(0xFFF4F6FA),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 36, color: Colors.black38),
-            ),
-            const SizedBox(height: 12),
-            Text(message, style: Theme.of(context).textTheme.titleMedium),
+            Icon(icon, size: 40, color: Colors.black38),
+            const SizedBox(height: 8),
+            Text(message, style: const TextStyle(color: Colors.black38)),
           ],
         ),
       ),
@@ -582,7 +512,7 @@ class _EmptyStateCard extends StatelessWidget {
 
 class _BottomNav extends StatelessWidget {
   final int currentIndex;
-  const _BottomNav({required this.currentIndex});
+  const _BottomNav({required this.currentIndex, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -590,19 +520,21 @@ class _BottomNav extends StatelessWidget {
       selectedIndex: currentIndex,
       destinations: const [
         NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
-        NavigationDestination(icon: Icon(Icons.calendar_today), label: 'Weekly'),
+        NavigationDestination(icon: Icon(Icons.calendar_today_rounded), label: 'Weekly'),
         NavigationDestination(icon: Icon(Icons.category_outlined), label: 'Categories'),
       ],
       onDestinationSelected: (i) {
-        if (i == 0) {
-          Navigator.popUntil(context, ModalRoute.withName('/'));
-          return;
+        switch (i) {
+          case 0:
+            Navigator.popUntil(context, ModalRoute.withName('/'));
+            break;
+          case 1:
+            Navigator.pushNamed(context, '/weekly');
+            break;
+          case 2:
+            Navigator.pushNamed(context, '/categories');
+            break;
         }
-        if (i == 1) {
-          Navigator.pushNamed(context, '/weekly');
-          return;
-        }
-        if (i == 2) Navigator.pushNamed(context, '/categories');
       },
     );
   }

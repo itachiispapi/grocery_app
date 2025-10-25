@@ -328,7 +328,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: const _BottomNav(index: 1), // optional
+      bottomNavigationBar: const _BottomNav(index: 1), 
     );
   }
 }

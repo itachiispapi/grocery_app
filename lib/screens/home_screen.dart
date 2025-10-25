@@ -453,8 +453,6 @@ class _PriceEstimationCard extends StatelessWidget {
           _EstimationTile(label: 'Total', value: total),
           _EstimationTile(label: 'To Buy', value: toBuy),
           _EstimationTile(label: 'Spent', value: spent),
-          const SizedBox(height: 8),
-          Text('Items: $totalCount (Left: $leftCount, Done: $doneCount)'),
         ],
       ),
     );

@@ -1,6 +1,6 @@
 # grocery_app
 
-A new Flutter project.
+Presentation Link: https://docs.google.com/presentation/d/1e5BfMCIVL-Gi5YNqkxgA-113XOoXi4DF/edit?slide=id.p1#slide=id.p1
 
 ## Getting Started
 

@@ -17,7 +17,7 @@ class CategoriesScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // Gradient header
+            
             Container(
               padding: const EdgeInsets.fromLTRB(8, 16, 16, 20),
               width: double.infinity,

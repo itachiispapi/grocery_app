@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../data/app_db.dart';
 import '../screens/categories_screen.dart';
-import '../data/models.dart'; 
+import '../data/models.dart';
+
+import '../widgets/weekly_list_popup.dart'; 
 
 class WeeklyPlannerScreen extends StatefulWidget {
   const WeeklyPlannerScreen({super.key});
@@ -49,6 +51,44 @@ class _WeeklyPlannerScreenState extends State<WeeklyPlannerScreen> {
   void _nextWeek() => setState(() => _weekStart = _weekStart.add(const Duration(days: 7)));
   void _selectDay(int i) => setState(() => _selectedIndex = i);
 
+  
+  Future<void> _openWeeklySuggestions() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const WeeklyListPopup()),
+    );
+
+    if (result != null && result is List && mounted) {
+      
+      for (final item in result) {
+        await AppDb.I.insertItem(GItem(
+          id: null,
+          name: item['name'],
+          qty: item['qty'] ?? 1.0,
+          unit: item['unit'] ?? 'pcs',
+          category: item['category'],
+          price: 0.0,
+          notes: '',
+          done: false,
+          active: true,
+          priority: false,
+          createdAt: DateTime.now(),
+        ));
+      }
+
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Added ${result.length} item(s) to shopping list'),
+            backgroundColor: const Color(0xFF34C759),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedDate = _days[_selectedIndex];
@@ -64,7 +104,16 @@ class _WeeklyPlannerScreenState extends State<WeeklyPlannerScreen> {
           onTapNext: _nextWeek,
           onSelectDay: _selectDay,
           dateKey: dateKey,
+          
+          onOpenWeeklySuggestions: _openWeeklySuggestions,
         ),
+      ),
+      
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openWeeklySuggestions,
+        backgroundColor: const Color(0xFF7E56FF),
+        icon: const Icon(Icons.add_shopping_cart),
+        label: const Text('Weekly Items'),
       ),
     );
   }
@@ -78,6 +127,8 @@ class _WeeklyBody extends StatelessWidget {
   final VoidCallback onTapPrev;
   final VoidCallback onTapNext;
   final ValueChanged<int> onSelectDay;
+  
+  final VoidCallback onOpenWeeklySuggestions;
 
   const _WeeklyBody({
     required this.weekTitle,
@@ -87,6 +138,8 @@ class _WeeklyBody extends StatelessWidget {
     required this.onTapPrev,
     required this.onTapNext,
     required this.onSelectDay,
+    
+    required this.onOpenWeeklySuggestions,
   });
 
   @override
@@ -126,6 +179,13 @@ class _WeeklyBody extends StatelessWidget {
                         Text('Weekly Planner', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                         Text('Plan your meals & groceries', style: TextStyle(color: Colors.white70)),
                       ],
+                    ),
+                    
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.list_alt, color: Colors.white, size: 28),
+                      tooltip: 'Weekly Suggestions',
+                      onPressed: onOpenWeeklySuggestions,
                     ),
                   ],
                 ),

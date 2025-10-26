@@ -8,7 +8,7 @@ class AppDb {
   static final AppDb I = AppDb._();
 
   static const _name = 'grocery.db';
-  static const _version = 2; // <-- bump version for migration
+  static const _version = 2; 
   Database? _db;
 
   Future<Database> get db async {
@@ -25,7 +25,7 @@ class AppDb {
     return _db!;
   }
 
-  // --- Migration for existing users ---
+  
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await db.execute('''
@@ -85,7 +85,7 @@ class AppDb {
   // --- RESET APP ---
   Future<void> resetApp() async {
     final d = await db;
-    // Delete all data from tables
+    
     await d.delete('items');
     await d.delete('meal_plan');
     await d.delete('meals');

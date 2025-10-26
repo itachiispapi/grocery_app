@@ -1,6 +1,8 @@
 # grocery_app
 
-Presentation Link: https://docs.google.com/presentation/d/1e5BfMCIVL-Gi5YNqkxgA-113XOoXi4DF/edit?slide=id.p1#slide=id.p1
+Recorded Presentation link: https://drive.google.com/file/d/1Qz9ab3S8jTKBsyRDQcCc8HY-nw5-HPrU/view?usp=sharing
+
+Powerpoint Presentation Link: https://docs.google.com/presentation/d/1e5BfMCIVL-Gi5YNqkxgA-113XOoXi4DF/edit?slide=id.p1#slide=id.p1
 
 ## Getting Started
 

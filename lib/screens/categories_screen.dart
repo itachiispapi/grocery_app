@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'category_items_screen.dart';
 
-
 class CategoriesScreen extends StatelessWidget {
-  const CategoriesScreen({super.key});
+  final bool isSelecting; 
+  const CategoriesScreen({super.key, this.isSelecting = false});
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +17,7 @@ class CategoriesScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // Gradient header
+            
             Container(
               padding: const EdgeInsets.fromLTRB(8, 16, 16, 20),
               width: double.infinity,
@@ -55,64 +55,64 @@ class CategoriesScreen extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: 12),
 
-            // Grid
+            
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: GridView.count(
                   crossAxisCount: 2,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
                   childAspectRatio: 1.25,
-                  children: const [
+                  children: [
                     _CategoryCard(
-                      color: Color(0xFFFFEDE3),
-                      label: 'Vegetables',
-                      icon: Icons.eco_rounded,
-                    ),
+                        color: const Color(0xFFFFEDE3),
+                        label: 'Vegetables',
+                        icon: Icons.eco_rounded,
+                        isSelecting: isSelecting),
                     _CategoryCard(
-                      color: Color(0xFFEAF5FF),
-                      label: 'Fruits',
-                      icon: Icons.apple_rounded,
-                    ),
+                        color: const Color(0xFFEAF5FF),
+                        label: 'Fruits',
+                        icon: Icons.apple_rounded,
+                        isSelecting: isSelecting),
                     _CategoryCard(
-                      color: Color(0xFFEFF7EE),
-                      label: 'Dairy',
-                      icon: Icons.icecream_outlined,
-                    ),
+                        color: const Color(0xFFEFF7EE),
+                        label: 'Dairy',
+                        icon: Icons.icecream_outlined,
+                        isSelecting: isSelecting),
                     _CategoryCard(
-                      color: Color(0xFFFFF2FC),
-                      label: 'Bakery',
-                      icon: Icons.cookie_outlined,
-                    ),
+                        color: const Color(0xFFFFF2FC),
+                        label: 'Bakery',
+                        icon: Icons.cookie_outlined,
+                        isSelecting: isSelecting),
                     _CategoryCard(
-                      color: Color(0xFFFFF2FC),
-                      label: 'Meats',
-                      icon: Icons.outdoor_grill,
-                    ),
+                        color: const Color(0xFFFFF2FC),
+                        label: 'Meats',
+                        icon: Icons.outdoor_grill,
+                        isSelecting: isSelecting),
                     _CategoryCard(
-                      color: Color(0xFFEFF8FF),
-                      label: 'Beverages',
-                      icon: Icons.local_drink_outlined,
-                    ),
+                        color: const Color(0xFFEFF8FF),
+                        label: 'Beverages',
+                        icon: Icons.local_drink_outlined,
+                        isSelecting: isSelecting),
                     _CategoryCard(
-                      color: Color(0xFFF8F0FF),
-                      label: 'Snacks',
-                      icon: Icons.restaurant_menu_rounded,
-                    ),
+                        color: const Color(0xFFF8F0FF),
+                        label: 'Snacks',
+                        icon: Icons.restaurant_menu_rounded,
+                        isSelecting: isSelecting),
                     _CategoryCard(
-                      color: Color(0xFFEFF4F9),
-                      label: 'Household',
-                      icon: Icons.home_outlined,
-                    ),
+                        color: const Color(0xFFEFF4F9),
+                        label: 'Household',
+                        icon: Icons.home_outlined,
+                        isSelecting: isSelecting),
                     _CategoryCard(
-                      color: Color(0xFFEFFAF2),
-                      label: 'Other',
-                      icon: Icons.grid_view_rounded,
-                    ),
+                        color: const Color(0xFFEFFAF2),
+                        label: 'Other',
+                        icon: Icons.grid_view_rounded,
+                        isSelecting: isSelecting),
                   ],
                 ),
               ),
@@ -128,18 +128,29 @@ class _CategoryCard extends StatelessWidget {
   final String label;
   final Color color;
   final IconData icon;
-  const _CategoryCard(
-      {required this.label, required this.color, required this.icon});
+  final bool isSelecting;
+
+  const _CategoryCard({
+    required this.label,
+    required this.color,
+    required this.icon,
+    required this.isSelecting,
+  });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(18),
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => CategoryItemsScreen(category: label)),
-        );
+        if (isSelecting) {
+          Navigator.pop(context, label); 
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => CategoryItemsScreen(category: label)),
+          );
+        }
       },
       child: Container(
         decoration: BoxDecoration(
